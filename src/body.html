@@ -1,0 +1,189 @@
+<div id="app">
+  <div id="bright"></div>
+  <div id="grid"></div>
+  <div id="blk"></div>
+  <div id="ov"></div>
+  <div id="lsw" class="glass gone" data-dir="h"><i id="lswg" class="lsg" title="Drag to move the switcher" aria-label="Move the mode switcher"></i><div id="lswb"></div><div id="lswa"></div></div>
+
+  <div id="hud">
+    <button id="fab" class="glass" title="Menu" aria-label="Menu"><i class="ico" data-i="menu"></i></button>
+    <div id="menu" class="glass">
+      <div class="brandbox">
+        <div class="brandrow"><img id="bicon" class="bicon" alt="" src=""><div class="brandtxt"><span class="brandline"><b class="brand">WebTroller</b></span><small class="tag">Website Controller</small></div><span class="mbtns"><button id="mi" aria-label="Why use WebTroller?" title="Why use WebTroller?" aria-expanded="false"><i class="ico" data-i="info"></i></button><button id="mx" aria-label="Close"><i class="ico" data-i="close"></i></button></span></div>
+      </div>
+      <div class="mgrid">
+        <button id="edit" class="pri mwide"><i class="ico" data-i="u-edit"></i>Edit Layout</button>
+        <button id="pre2"><i class="ico" data-i="gamepad"></i>Controllers</button><button id="lay2"><i class="ico" data-i="u-folder"></i>Load Layout</button>
+      </div>
+      <div class="mlab">Tools</div>
+      <div class="mgrid">
+        <button id="stbtn"><i class="ico" data-i="u-chart"></i>Performance</button><button id="nbtn"><i class="ico" data-i="u-wifi"></i>Network</button>
+        <button id="lsOn"><i class="ico" data-i="toggle"></i>Modes</button><button id="kbtn"><i class="ico" data-i="keyboard"></i>Keyboard</button>
+        <button id="hsOn"><i class="ico" data-i="eye"></i>Visibility</button><button id="dsOn"><i class="ico" data-i="lock"></i>Lock Screen</button>
+        <button id="fs"><i class="ico" data-i="u-full"></i>Fullscreen</button><button id="adbOn" title="Blocks ads, pop-ups and AdGuard DNS ad/tracker servers"><i class="ico" data-i="u-shield"></i>Ad Blocker</button>
+      </div>
+      <div class="mlab">Adjust</div>
+      <label class="mrow"><span class="ml"><i class="ico" data-i="u-sun-dim"></i>Opacity</span><input type="range" id="op" min="20" max="100"><span id="opv" class="vv">100%</span></label>
+      <label class="mrow"><span class="ml"><i class="ico" data-i="u-sun"></i>Brightness</span><input type="range" id="br" min="20" max="100"><span id="brv" class="vv">100%</span></label>
+      <label class="mrow"><span class="ml"><i class="ico" data-i="volume"></i>Volume</span><input type="range" id="vol" min="0" max="100"><span id="volv" class="vv">100%</span></label>
+      <button id="donbtn" class="coffee"><i class="ico" data-i="u-coffee"></i>Buy Me A Coffee</button>
+      <div class="credit">Developed by <b>Vertzz</b> · <a href="https://t.me/vertzz_official" target="_blank" rel="noopener noreferrer">t.me/vertzz_official</a></div>
+      <div id="mtip" role="dialog" aria-label="Why use WebTroller?"><b>No keyboard on your phone?</b><p>Many browser games need keyboard keys or a mouse. WebTroller puts touch buttons and analog sticks on the screen that press those keys for you, so you can play on a phone or tablet with no physical keyboard.</p></div>
+    </div>
+  </div>
+
+  <div id="stats">
+    <div id="stc">
+      <div class="sth"><i class="dot"></i>Performance</div>
+      <div class="stm"><span id="stfps" data-q="g">--</span><small>FPS</small></div>
+      <canvas id="stg" width="600" height="160"></canvas>
+      <div class="str"><span>Frame time</span><b id="stms">--</b></div>
+      <div class="str"><span>1% low</span><b><span id="stlow">--</span> FPS</b></div>
+      <div class="str" id="stmemrow"><span>JS memory</span><b id="stmem">--</b></div>
+      <i id="strz" title="Drag to resize"></i>
+    </div>
+  </div>
+
+  <div id="net">
+    <div id="ntc">
+      <div class="sth"><i class="dot"></i>Network</div>
+      <div class="stm"><span id="nping" data-q="g">--</span><small>ms</small></div>
+      <canvas id="ntg" width="600" height="160"></canvas>
+      <div class="str"><span>Jitter</span><b id="njit">--</b></div>
+      <div class="str"><span>Packet loss</span><b id="nloss">--</b></div>
+      <div class="str"><span>Page traffic</span><b id="nrate">--</b></div>
+      <div class="str" id="nconrow"><span>Connection</span><b id="ncon">--</b></div>
+      <i id="nrz" title="Drag to resize"></i>
+    </div>
+  </div>
+
+  <div id="kb"><button id="kbf" class="glass" title="Show or hide keyboard" aria-label="Show or hide keyboard"><i class="ico" data-i="keyboard"></i></button></div>
+  <div id="vkw"><div id="vkt" class="glass" aria-live="polite"></div><button id="vkeye" class="glass" aria-label="Show password"></button><button id="vkem" class="glass" aria-label="Emoji" title="Emoji"></button><button id="vklg" class="glass" aria-label="Language" title="Language"></button><button id="vkhd" class="glass" aria-label="Close keyboard" title="Close keyboard"></button></div>
+  <div id="vkb" class="glass"></div>
+
+  <div id="ds"><button id="dsb" class="glass" title="Lock or unlock the screen" aria-label="Lock or unlock the screen"><i class="ico" data-i="lock"></i></button></div>
+
+  <div id="ls" class="gone"><button id="lsb" class="glass" title="Modes" aria-label="Modes"><i class="ico" data-i="toggle"></i></button><div id="lsl" class="glass" role="menu"></div></div>
+
+  <div id="hs"><button id="hsb" class="glass" title="Hide or show all buttons" aria-label="Hide or show all buttons"><i class="ico" data-i="eye"></i></button></div>
+
+  <div id="ebw">
+  <div id="ebar" class="glass">
+    <b>Layout Editor</b><span id="olab" class="chip"></span>
+    <button id="undo" title="Undo (Ctrl+Z)" aria-label="Undo"><i class="ico" data-i="u-undo"></i></button><button id="redo" title="Redo (Ctrl+Y)" aria-label="Redo"><i class="ico" data-i="u-redo"></i></button>
+    <button id="add"><i class="ico" data-i="u-add"></i>Button</button><button id="addA"><i class="ico" data-i="joystick"></i>Analog Stick</button>
+    <button id="multi" title="Select several buttons to move or resize them together"><i class="ico" data-i="u-multi"></i>Multi-Select</button><button id="selall"><i class="ico" data-i="u-all"></i>Select All</button>
+    <button id="snap"><i class="ico" data-i="u-grid"></i>Grid</button><button id="caps"><i class="ico" data-i="u-caption"></i>Captions</button><button id="bord"><i class="ico" data-i="u-border"></i>Borders</button>
+    <button id="lay"><i class="ico" data-i="u-save"></i>Save Layout</button><button id="reset" class="dng"><i class="ico" data-i="u-reset"></i>Reset</button>
+    <button id="help" title="How the Layout Editor works"><i class="ico" data-i="help"></i>Help</button><button id="done" class="pri"><i class="ico" data-i="check"></i>Done</button>
+  </div>
+  <button id="etog" class="glass" title="Hide the editor bar" aria-label="Hide the editor bar"><i></i></button>
+  </div>
+
+  <aside id="panel" class="glass">
+    <header><div class="ph"><span id="pprev" class="pprev"></span><div><b id="ptitle">Properties</b><small id="psub" class="mut">Select a button to edit it</small></div></div><div class="phb"><button id="pcol" aria-label="Minimize or maximize"><i class="ico" data-i="u-chev-down"></i></button></div></header>
+    <div id="pbody">
+      <div id="empty" class="pempty"><div class="pe-ic"><i class="ico" data-i="u-tap"></i></div><b>Select A Button</b><p></p></div>
+      <div id="fields">
+        <section class="ps">
+          <h4>Appearance</h4>
+          <label class="f" id="fl-name">Name<input type="text" id="pl" placeholder="Button name"></label>
+          <div id="kr" style="display:contents">
+            <div class="f" id="fl-icon">Icon<button id="pic" class="pbtn"></button></div>
+            <div class="f">Shape<div class="seg" id="pshape">
+              <button data-v="sq"><i class="shp"></i>Square</button><button data-v="rc"><i class="shp rc"></i>Wide</button><button data-v="ci"><i class="shp ci"></i>Circle</button><button data-v="ov"><i class="shp ov"></i>Oval</button>
+            </div></div>
+          </div>
+          <div class="f">Color<div class="sws" id="pswatch"><input type="color" id="pcl" title="Custom color"></div></div>
+          <label class="f">Size <span id="pzv" class="val"></span><input type="range" id="pz" min="44" max="260"></label>
+        </section>
+        <section class="ps" id="sec-ctl">
+          <h4>Controls</h4>
+          <div class="f" id="rk">This button presses<button id="pk" class="pkey"></button></div>
+          <div class="f" id="rsm" style="display:none">The stick moves<div class="seg" id="pmode"><button data-v="look">Mouse Look</button><button data-v="wasd">W A S D</button><button data-v="arrows">Arrows</button><button data-v="scroll">Scroll</button></div></div>
+          <label class="f" id="rse" style="display:none">Speed <span id="psev" class="val"></span><input type="range" id="pse" min="2" max="40"></label>
+          <div class="tgl"><span id="rlkt">Hold 0.5 sec to lock the button</span><label class="sw2"><input type="checkbox" id="plk"><i></i></label></div>
+          <div class="f" id="rlkd">Lock directions<div class="seg" id="plkd"><button data-v="u">Up</button><button data-v="l">Left</button><button data-v="r">Right</button><button data-v="d">Down</button></div></div>
+        </section>
+        <div class="g2"><button id="pdup"><i class="ico" data-i="u-copy"></i>Duplicate</button><button id="pd" class="dng"><i class="ico" data-i="u-trash"></i>Delete</button></div>
+      </div>
+    </div>
+  </aside>
+  <div id="scrim"></div>
+  <div id="picker" class="glass">
+    <div class="row"><b style="margin-right:auto">Choose Input</b><button id="pkn">None</button><button id="pkx" aria-label="Close"><i class="ico" data-i="close"></i></button></div>
+    <div class="row"><button class="tab pri" data-t="k"><i class="ico" data-i="keyboard"></i>Keyboard</button><button class="tab" data-t="m"><i class="ico" data-i="mouse"></i>Mouse</button></div>
+    <div id="pkl"></div>
+  </div>
+  <div id="lyrm" class="glass modal">
+    <div class="row" id="lyhead"><span class="lico"><i class="ico" data-i="toggle"></i></span><div class="ltt"><b>Modes</b><small id="lysub" class="mut"></small></div><button id="lyx" aria-label="Close"><i class="ico" data-i="close"></i></button></div>
+    <p class="mut" style="margin:0;font-size:12px">A mode is a full set of buttons inside this one layout, for example one for walking, one for driving and one for swimming. While you play, tap the round Modes button (beside the menu button) to open the list and pick a mode. Tap a mode's icon here, or tap the current mode (or hold any mode) in the editor's mode row, to give it a picture, such as a person or a car, or to delete it. Turn off “In switcher” for a mode you do not want in the list.</p>
+    <div id="lylist" class="col"></div>
+    <div class="g2"><button id="lyadd"><i class="ico" data-i="u-add"></i>Empty Mode</button><button id="lycopy"><i class="ico" data-i="u-copy"></i>Copy This Mode</button></div>
+  </div>
+  <div id="ipicker" class="glass modal">
+    <div class="row"><b style="margin-right:auto">Choose Icon</b><button id="ipx" aria-label="Close"><i class="ico" data-i="close"></i></button></div>
+    <div id="ibox"></div>
+  </div>
+  <div id="laym" class="glass modal">
+    <div class="row" id="lhead"><span id="lico" class="lico"></span><div class="ltt"><b id="ltitle">Layouts</b><small id="lsub" class="mut"></small></div><button id="lx" aria-label="Close"><i class="ico" data-i="close"></i></button></div>
+    <div class="row" id="lsrow"><input type="text" id="lname" maxlength="20" placeholder="Layout name" style="flex:1"><button id="lsave" class="pri">Save</button></div>
+    <div class="tgl" id="lurow"><span>Also save this page's address (URL)<br><small id="lurl" class="mut" style="word-break:break-all"></small></span><label class="sw2"><input type="checkbox" id="lusave"><i></i></label></div>
+    <div id="lays" class="col"></div>
+    <div id="lbk">
+      <div class="grp">Backup All Layouts</div>
+      <p id="lbtx" class="mut">Saves every portrait and landscape layout into one file. Keep it somewhere safe: if the extension is ever removed, restore it here and nothing is lost.</p>
+      <div class="row"><button id="lbdl" class="pri"><i class="ico" data-i="u-save"></i>Download Backup</button><button id="lbrs" class="pri"><i class="ico" data-i="u-folder"></i>Restore Backup</button></div>
+      <input type="file" id="lbfile" accept=".json,.txt,application/json,text/plain" hidden>
+    </div>
+  </div>
+  <div id="presm" class="glass modal">
+    <div class="row"><b style="margin-right:auto">Controllers</b><button id="px" aria-label="Close"><i class="ico" data-i="close"></i></button></div>
+    <p class="mut" style="margin:0;font-size:12px">Pick a controller. The buttons and key mappings are set up for you, and you can still edit anything afterwards.</p>
+    <div id="cards" class="cards"></div>
+  </div>
+  <div id="infom" class="glass modal">
+    <div class="row"><b style="margin-right:auto"><i class="ico" data-i="info"></i>What is WebTroller?</b><button id="ix" aria-label="Close"><i class="ico" data-i="close"></i></button></div>
+    <div class="infob">
+      <p><b>WebTroller</b> (Website Controller) puts a customizable on-screen game controller on top of any website. Its buttons send real key presses, mouse clicks, scrolls and mouse movement to the page, so you can play browser games and web emulators on a touch screen, or control any page without a keyboard and mouse.</p>
+      <h5>On your phone or tablet</h5>
+      <ul>
+        <li>Tap <b>Edit Layout</b> to drag, resize and style buttons and analog sticks, or tap <b>Controllers</b> to start from a ready-made one.</li>
+        <li>Portrait and landscape each keep their own layout. Save layouts and load them again later.</li>
+        <li><b>Lock Screen</b> stops accidental touches from clicking or scrolling the website under your controller.</li>
+        <li><b>Keyboard</b> opens WebTroller's own keyboard so your phone's keyboard does not cover the game.</li>
+        <li><b>Visibility</b> hides every controller button for a moment. <b>Fullscreen</b>, <b>Opacity</b>, <b>Brightness</b> and <b>Volume</b> help you play comfortably.</li>
+        <li><b>Performance</b> and <b>Network</b> show FPS and ping while you play.</li>
+      </ul>
+      <h5>Ad Blocker (with AdGuard DNS)</h5>
+      <p>One switch does it all. <b>Ad Blocker</b> blocks known ad networks, hides leftover ad boxes and stops pop-ups. It also uses <b>AdGuard DNS</b>: it asks AdGuard's DNS server whether the third-party servers a page talks to are ad or tracker servers, and blocks the ones it flags. Only those server names are sent (for example <i>ads.example.com</i>), never the page address, your typing or your passwords. It does not change the phone's DNS for other apps. It applies to pages and requests loaded after you turn it on.</p>
+      <h5>Good to know</h5>
+      <ul>
+        <li>Tap the round <b>☰</b> button to open this menu. Tap outside a panel to close it.</li>
+        <li>WebTroller stays open on a tab through reloads until you hide it with the extension icon.</li>
+        <li>Works in Kiwi Browser and Firefox on Android, and in Chrome, Edge, Brave and Firefox on a computer.</li>
+      </ul>
+      <p class="mut">Developed by <b>Vertzz</b> · t.me/vertzz_official</p>
+    </div>
+    <button id="idone" class="pri"><i class="ico" data-i="check"></i>Got it</button>
+  </div>
+  <div id="donm" class="glass modal">
+    <div class="row"><b style="margin-right:auto"><i class="ico" data-i="u-coffee"></i>Buy Me A Coffee</b><button id="dx" aria-label="Close"><i class="ico" data-i="close"></i></button></div>
+    <p class="mut" style="margin:0;font-size:13px">WebTroller is free. If it helps you play, a small tip keeps it growing. Thank you!</p>
+    <div id="dons" class="col"></div>
+    <p class="mut" style="margin:0;font-size:11.5px">Tap an address or its Copy button, then paste it in your wallet. Send each coin only to its own address, on its own network (PEPE only on Ethereum).</p>
+  </div>
+  <div id="confm" class="glass modal">
+    <div class="row"><b id="ctitle" style="margin-right:auto"></b><button id="cx" aria-label="Close"><i class="ico" data-i="close"></i></button></div><p id="cmsg" class="mut" style="margin:0"></p>
+    <div class="row" id="cbtns" style="justify-content:flex-end"></div>
+  </div>
+  <div id="tblock"></div><div id="tring"></div>
+  <div id="tut" class="glass" role="dialog" aria-live="polite">
+    <div class="tuth"><span id="tstep" class="chip"></span><button id="tskip" class="tskip">Skip</button></div>
+    <b id="ttitle"></b>
+    <div id="tbody"></div>
+    <div id="tdots"></div>
+    <div class="row tbtns"><button id="tback">Back</button><button id="tnext" class="pri">Next</button></div>
+  </div>
+  <div id="toast" class="glass"></div>
+</div>
