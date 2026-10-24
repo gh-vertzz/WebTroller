@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WebTroller",
-  "version": "2.3.23",
+  "version": "2.3.24",
   "description": "WebTroller (Website Controller): a customizable on-screen game controller for any website. Developed by Vertzz.",
   "homepage_url": "https://t.me/vertzz_official",
   "icons": {
