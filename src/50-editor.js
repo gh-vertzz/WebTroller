@@ -2,11 +2,14 @@
 const HIST={u:[],r:[],t:0,last:null};
 /* every mode keeps its own Undo and Redo: HIST is the history of the mode on screen, HSTORE holds the history of the modes you left (by mode id).
    WHOLE marks the steps that changed all modes at once (loading a layout, choosing a controller): undoing or redoing those goes back for every mode. */
-const HSTORE={},WHOLE=new Set();
+const HSTORE={},WHOLE=new Set(),HORI={};   /* HORI: the Undo and Redo of every mode, kept per orientation while you are in the other one */
 const curId=()=>S.layers[S.li]&&S.layers[S.li].id;
 function histSave(){const id=curId();if(id!==undefined)HSTORE[id]={u:HIST.u,r:HIST.r}}
 function histLoad(){const h=HSTORE[curId()];HIST.u=h?h.u:[];HIST.r=h?h.r:[];HIST.t=0;HIST.last=null;updUR()}
-function histReset(){Object.keys(HSTORE).forEach(k=>delete HSTORE[k]);HIST.u=[];HIST.r=[];HIST.t=0;HIST.last=null;updUR()}
+function histReset(){Object.keys(HORI).forEach(k=>delete HORI[k]);Object.keys(HSTORE).forEach(k=>delete HSTORE[k]);HIST.u=[];HIST.r=[];HIST.t=0;HIST.last=null;updUR()}
+/* rotating: the history of this orientation is set aside and the other orientation gets its own back (a layout that was rebuilt starts with none) */
+function histStash(o){histSave();HORI[o]=S.layers.map(l=>HSTORE[l.id]||null)}   /* kept by the position of each mode: a layout that is loaded again can get new mode ids */
+function histSwap(k,had){Object.keys(HSTORE).forEach(x=>delete HSTORE[x]);HIST.u=[];HIST.r=[];HIST.t=0;HIST.last=null;if(had&&HORI[k])S.layers.forEach((l,i)=>{if(HORI[k][i])HSTORE[l.id]=HORI[k][i]});delete HORI[k];histLoad()}
 function histCommitWhole(prev){if(snap()===prev)return;WHOLE.add(prev);commit(prev)}
 /* every history step remembers which preset it belongs to (p); undo and redo never cross into another preset */
 const snap=()=>JSON.stringify({b:S.btns,c:S.caps,o:S.border,p:S.ctrl||"",li:S.li,w:S.sw,ly:S.layers.map((l,i)=>i===S.li?{id:l.id,n:l.n,i:l.i,hide:l.hide}:l)});
@@ -23,8 +26,14 @@ const curP=()=>S.ctrl||"";
 const layoutObj=()=>{syncLayer();const o={btns:S.btns,caps:S.caps===0?0:1,border:S.border===0?0:1};
   if(S.layers.length>1||S.layers[0].i||S.layers[0].hide||S.layers[0].n){o.layers=S.layers;o.li=S.li;if(S.sw)o.sw=S.sw}   /* one mode with its own icon is saved the same way, so the icon is not lost */
   return JSON.parse(JSON.stringify(o))};
+/* the layout a history snapshot describes, built without touching what is on screen */
+function snapLayout(t){
+  const p=JSON.parse(t),ly=Array.isArray(p.ly)?p.ly.map((l,i)=>i===p.li?Object.assign({},l,{btns:p.b}):l):null,o={btns:p.b,caps:p.c===0?0:1,border:p.o===0?0:1};
+  if(ly&&(ly.length>1||ly[0].i||ly[0].hide||ly[0].n)){o.layers=ly;o.li=p.li;if(p.w)o.sw=p.w}
+  return JSON.parse(JSON.stringify(o));
+}
 /* a saved layout belongs to the orientation it was saved in: portrait and landscape each have their own list */
-function slotObj(){const o=layoutObj();o.o=S.lo||layoutKey();{const[sw,sh]=viewSize();o.scr={w:Math.round(sw),h:Math.round(sh)}}   /* the screen size (px) it was made on, so a smaller screen can be warned on import / restore */
+function slotObj(){const o=layoutObj();o.o=S.lo||layoutKey();{const[sw,sh]=viewSize();o.scr={w:Math.round(sw),h:Math.round(sh)};try{o.scrn=scrFull(S.lo||layoutKey())}catch(e){}}   /* the screen size (px) it was made on, so a smaller screen can be warned on import / restore */
  if(o.layers){o.li=0;o.btns=o.layers[0].btns}return o}   /* a saved layout always opens on its first layer */
 /* keep every button fully on screen (positions are % of the screen, sizes are px) */
 function fitBtns(){
@@ -198,27 +207,76 @@ $("reset").onclick=()=>isDefaultLayout()?toast("Already the default layout"):ask
 $("ov").onpointerdown=e=>{if(mode==="edit"&&e.target===$("ov")){selectOnly(null);fill();render()}};
 
 /* ---------- Edit layout / Done: ask before keeping changes ---------- */
-$("edit").onclick=()=>{fitBtns();EDIT0=MODE0=EDIT_START=snap();   /* the buttons of every mode are fitted to the screen BEFORE the starting point is taken, so visiting modes later never looks like a change */
-  SAVED_GONE=false;setMode("edit");tutAuto()};
+$("edit").onclick=()=>{fitBtns();EDIT0=MODE0=EDIT_START=snap();mkDraft();   /* the buttons of every mode are fitted to the screen BEFORE the starting point is taken, so visiting modes later never looks like a change */
+  SAVED_GONE=false;ROT_Q=false;PEND={};setMode("edit");tutAuto()};
 /* leaving the editor always lands on the first mode that is switched on in the switcher (modes switched off are skipped) */
 function firstModeOn(){const i=S.layers.findIndex(l=>!l.hide);if(i<0||i===S.li)return;releaseAll();syncLayer();S.li=i;S.btns=S.layers[i].btns;fitBtns()}
-function leaveEdit(){SAVED_GONE=false;firstModeOn();save();setMode("play")}
-$("done").onclick=()=>{
-  const changed=!sameEdit(snap(),EDIT0)||SAVED_GONE,name=curName(),exists=!!(name&&slots()[name]);
-  if(exists&&!changed)return leaveEdit();   /* a layout that is already saved and has no changes: nothing to ask, as before */
+/* an unfinished edit is not kept: the state the editor started from is stored while you edit, and if the page is reloaded before you tap Done, everything goes back to it (modes, buttons, both orientations). Saved layouts are never touched. */
+function mkDraft(){
+  S.draft={lo:S.lo,ctrl:S.ctrl||"",layout:layoutObj(),alt:JSON.parse(JSON.stringify(S.alt||{})),altC:JSON.parse(JSON.stringify(S.altC||{})),curBy:JSON.parse(JSON.stringify(S.curBy||{})),curX:JSON.parse(JSON.stringify(S.curX||{})),ops:JSON.parse(JSON.stringify(S.ops||{}))};
+  saveNow();
+}
+function revertDraft(){
+  const d=S.draft;if(!d)return;delete S.draft;
+  S.alt=d.alt||{};S.altC=d.altC||{};S.curBy=d.curBy||{};S.curX=d.curX||{};S.ops=d.ops||{p:[],l:[]};if(d.lo)S.lo=d.lo;S.ctrl=d.ctrl||undefined;
+  if(d.layout)setLayout(d.layout);
+  saveNow();
+}
+/* Discard: the mode changes that were waiting for the other orientation are dropped too */
+function dropOps(){if(S.draft)S.ops=JSON.parse(JSON.stringify(S.draft.ops||{p:[],l:[]}))}
+function leaveEdit(){SAVED_GONE=false;ROT_Q=false;PEND={};firstModeOn();save();setMode("play")}
+function doneCur(){
+  const ko=(S.lo||layoutKey())==="p"?"l":"p",pe=PEND[ko];
+  const changed=!sameEdit(snap(),EDIT0)||SAVED_GONE||!!pe,name=curName(),exists=!!lnk();
+  const pn=exists?name:(pe&&pe.ex&&!pe.gone?pe.name:null);   /* the name the layout already has, in either orientation */
+  if(exists&&!changed)return leaveEdit();   /* only a layout that is already saved and unchanged leaves silently; rotating alone no longer skips the question */   /* a layout that is already saved and has no changes: nothing to ask, as before */
   const nm=modeNote();
   const msg=SAVED_GONE?"This layout was deleted from your saved layouts, so it is not saved anymore. Save it again under a name?"
-    :exists?"Save these changes to your current layout \u201c"+name+"\u201d?"
+    :pn?"Save these changes to your current layout \u201c"+pn+"\u201d? Your portrait and landscape layouts are both saved."
     :"This layout is not in your saved layouts yet. Save it under a name?";
   const btns=[];
-  /* Discard: always for a saved layout with changes (as before); for a layout whose name is not in Load Layout only when something changed */
-  if(changed)btns.push({t:"Discard",cls:"dng",fn:()=>{restore(SAVED_GONE&&EDIT_START?EDIT_START:EDIT0,true);histReset();leaveEdit();toast("Changes discarded")}});   /* the saved copy was deleted, so EDIT0 (what was saved) is just what is on screen: go back to how it was when editing began */
+  if(changed)btns.push({t:"Discard",cls:"dng",fn:()=>{if(pe){S.alt=S.alt||{};S.alt[ko]=pe.base;delete PEND[ko]}dropOps();restore(SAVED_GONE&&EDIT_START?EDIT_START:EDIT0,true);histReset();leaveEdit();toast("Changes discarded")}});
+  if(!changed)btns.push({t:"Cancel",fn:()=>leaveEdit()});   /* nothing was changed and it is not saved: Cancel leaves the editor */
   btns.push({t:"Save",cls:"pri",fn:()=>{
-    if(!exists){SAVE_FIRST=true;openLay();return}     /* never saved under a name: open the Save Layout panel so it can be named and saved */
-    {const o=slotObj(),u=slots()[name].url;if(u)o.url=u;slots()[name]=o}   /* keeps the page address it was saved with */
-    leaveEdit();toast("Saved to \u201c"+name+"\u201d")}});
+    if(!pn||SAVED_GONE){SAVE_FIRST=true;openLay();return}     /* never saved under a name: open the Save Layout panel so it can be named and saved */
+    {const o=slotObj(),u=(lnk()||{}).url;if(u)o.url=u;saveBoth(pn,o)}   /* keeps the page address it was saved with */
+    leaveEdit();toast("Saved to \u201c"+pn+"\u201d")}});
   dialog(changed?"Save your changes?":"Save your layout?",nm+msg,btns);
-};
+}
+/* changes made in the orientation you rotated away from are still asked about when you press Done */
+function askPend(ko,pe,next){
+  const w=kName(ko).toLowerCase();
+  const msg=pe.gone?"Your "+w+" layout was deleted from your saved layouts, so it is not saved anymore. Save it again?":pe.ex?"Save these changes to your "+w+" layout \u201c"+pe.name+"\u201d?":"Your "+w+" layout is not in your saved layouts yet. Save it?";
+  dialog("Save your changes?",msg,[
+    {t:"Discard",cls:"dng",fn:()=>{S.alt=S.alt||{};S.alt[ko]=pe.base;delete PEND[ko];save();toast("Changes discarded");next()}},
+    {t:"Save",cls:"pri",fn:()=>{
+      if(!(pe.ex&&!pe.gone)){PSAVE={ko,pe,next};openLay();return}   /* never saved under a name: the Save Layout panel opens so it can be named */
+      S.slotsBy=S.slotsBy||{p:{},l:{}};const dst=S.slotsBy[ko]||(S.slotsBy[ko]={}),name=pe.name,o=JSON.parse(JSON.stringify(pe.ed));
+      o.o=ko;if(o.layers){o.li=0;o.btns=o.layers[0].btns}
+      if(dst[name]&&dst[name].url)o.url=dst[name].url;
+      dst[name]=o;S.curBy=S.curBy||{};S.curBy[ko]=name;delete PEND[ko];save();toast("Saved \u201c"+name+"\u201d");next()}}]);
+}
+/* both orientations have changes: one question for both */
+function saveOther(ko,pe,name){
+  S.slotsBy=S.slotsBy||{p:{},l:{}};const dst=S.slotsBy[ko]||(S.slotsBy[ko]={}),o=JSON.parse(JSON.stringify(pe.ed));o.o=ko;if(o.layers){o.li=0;o.btns=o.layers[0].btns}
+  if(dst[name]&&dst[name].url)o.url=dst[name].url;dst[name]=o;S.curBy=S.curBy||{};S.curBy[ko]=name;delete PEND[ko];save();
+}
+function askBoth(ko,pe){
+  const cn=curName(),cex=!!(lnk()&&!SAVED_GONE),oex=pe.ex&&!pe.gone;
+  dialog("Save your changes?","Your portrait and landscape layouts both have changes. Save them both?",[
+    {t:"Discard",cls:"dng",fn:()=>{S.alt=S.alt||{};S.alt[ko]=pe.base;delete PEND[ko];dropOps();restore(SAVED_GONE&&EDIT_START?EDIT_START:EDIT0,true);histReset();leaveEdit();toast("Changes discarded")}},
+    {t:"Save",cls:"pri",fn:()=>{
+      let otherDone=oex;
+      if(oex)saveOther(ko,pe,pe.name);
+      if(oex&&!cex)NAMEHINT=pe.name;   /* the layout on screen gets the same name, as the other half of it */
+      if(!oex&&!cex){BOTHN={ko,pe};otherDone=true}   /* neither has a name yet: the other orientation gets the next free name, the panel opens for the layout on screen */
+      if(cex){const o=slotObj(),u=(lnk()||{}).url;if(u)o.url=u;slots()[cn]=o;setCur(cn);S.act=cn;dropFit(cn,S.lo||layoutKey())}
+      if(!cex){SAVE_FIRST=true;openLay();return}                   /* the layout on screen was never saved under a name: the Save Layout panel opens so it can be named */
+      if(!otherDone){PSAVE={ko,pe,next:leaveEdit};openLay();return}
+      leaveEdit();toast("Saved both layouts")}}]);
+}
+$("done").onclick=()=>doneCur();   /* one question for both orientations: the save writes both */
+
 
 /* ---------- start ---------- */
 delete S.url;delete S.orient;delete S.flip;
@@ -234,6 +292,7 @@ if(!S.slotsBy){
   });
 }
 delete S.slots;
+revertDraft();
 const fresh=S.lo===undefined;
 refresh();updUR();statsUI();netUI();hsUI();dsUI();kbUI();volUI();brUI();swUI();
 if(fresh){const p=randPreset();S.ctrl=p.name;setLayout(buildPreset(p));save();render();swUI()}   /* first launch: a random controller, never Default */

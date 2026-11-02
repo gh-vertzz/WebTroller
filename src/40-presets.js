@@ -50,22 +50,27 @@ const PRESETS=[
  {name:'Casual (one tap)',em:'👆',sub:'One big Tap button and a Pause button for simple games',dp:null,faces:[['Tap','','Space',GR,'ci',0,0,2.2]],mid:[['Pause','Esc']]},
  {name:'Navigation',em:'🧭',sub:'Arrow keys, Enter, Esc, Tab, scroll buttons and a touch-style scroll stick',dp:'arrows',faces:dia(['Space','','Space',YL],['OK','','Enter',GR],['Tab','','Tab',BL],['Back','','Esc',RD]),sh:SHD([['Scroll Up','mouse:wheelup','@arrow-up'],['Scroll Left','mouse:wheelleft','@arrow-left']],[['Scroll Down','mouse:wheeldown','@arrow-down'],['Scroll Right','mouse:wheelright','@arrow-right']]),mid:[['Esc','Esc'],['Enter','Enter']],sl:'scroll',sln:'Scroll',sr:'look'}
 ];
-function buildPreset(p){
+function buildPreset(p,dims){
   if(p.blank)return [];
-  const [lw,lh]=viewSize(),W=Math.max(lw||800,320),H=Math.max(lh||600,320);
-  const s=Math.max(46,Math.min(64,Math.round(Math.min(W,H)*.12))),st=Math.round(s*1.12),M=14,hs=s/2;
+  const [lw,lh]=dims||viewSize(),W=Math.max(lw||800,320),H=Math.max(lh||600,320);
+  const M=14,horiz=W>H*1.2,gap=8,SHs=p.sh||{l:[],r:[]},nSh=Math.max(SHs.l.length,SHs.r.length);
+  /* every size and position comes from the button size s. When the screen is short (landscape) the top of the face buttons would reach the shoulder buttons and sit on top of them, so s shrinks a little until the shoulder buttons fit above the cluster */
+  const geo=s=>{const st=Math.round(s*1.12),hs=s/2,mw=Math.round(s*1.8),bw=Math.round(s*1.2),bh=Math.round(bw*.6),sw=Math.round(s*1.5),sh=Math.round(sw*.6);
+    const stickY=H-M-mw,base=(p.sl||p.sr)?stickY-18:H-M-bh-18;
+    let tx=p.dp?1.45:0,bx=tx;
+    p.faces.forEach(f=>{const z=f[7]||1;tx=Math.max(tx,-f[6]+.45*z);bx=Math.max(bx,f[6]+.45*z)});
+    const ex=Math.max(1.5,...p.faces.map(f=>Math.abs(f[5])+.45*(f[7]||1))),cy=base-bx*st,lx=M+1.5*st,rx=W-M-ex*st,topY=cy-tx*st;
+    const shTop=nSh?topY-14-sh-(horiz?0:(nSh-1)*(sh+gap)):99;
+    return{s,st,hs,mw,bw,bh,sw,sh,stickY,base,cy,lx,rx,topY,shTop}};
+  let s0=Math.max(46,Math.min(64,Math.round(Math.min(W,H)*.12))),g=geo(s0);
+  while(g.shTop<8&&s0>30){s0-=2;g=geo(s0)}
   const out=[];let id=0;
   const put=(o,x,y,w)=>{const h=Math.round(w*(KF[o.shape]||1));x=Math.max(4,Math.min(W-4-w,x));y=Math.max(4,Math.min(H-4-h,y));
     out.push(Object.assign({id:++id,img:'',icon:'',shape:'sq',w},o,{x:+(x/W*100).toFixed(2),y:+(y/H*100).toFixed(2)}))};
-  const mw=Math.round(s*1.8),bw=Math.round(s*1.2),bh=Math.round(bw*.6),sw=Math.round(s*1.5),sh=Math.round(sw*.6);
-  const stickY=H-M-mw,base=(p.sl||p.sr)?stickY-18:H-M-bh-18;
-  let tx=p.dp?1.45:0,bx=tx;
-  p.faces.forEach(f=>{const z=f[7]||1;tx=Math.max(tx,-f[6]+.45*z);bx=Math.max(bx,f[6]+.45*z)});
-  const ex=Math.max(1.5,...p.faces.map(f=>Math.abs(f[5])+.45*(f[7]||1))),cy=base-bx*st,lx=M+1.5*st,rx=W-M-ex*st,topY=cy-tx*st;
+  const{s,st,hs,mw,bw,bh,sw,sh,stickY,base,cy,lx,rx,topY}=g;
   if(p.dp){const kk=p.dp==='wasd'?['W','S','A','D']:['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
     [['Up','@tri-up',0,-1],['Down','@tri-down',0,1],['Left','@tri-left',-1,0],['Right','@tri-right',1,0]].forEach(([n,ic,dx,dy],i)=>put(Object.assign({label:n,icon:ic,c:WH},kd(kk[i])),lx+dx*st-hs,cy+dy*st-hs,s))}
   p.faces.forEach(f=>{const [l,ic,k,c,sp,dx,dy,z]=f,w=Math.round(s*(z||1));put(Object.assign({label:l,icon:ic,shape:sp,c},bindOf(k)),rx+dx*st-w/2,cy+dy*st-w/2,w)});
-  const horiz=W>H*1.2,gap=8,SHs=p.sh||{l:[],r:[]};
   const place=(list,left)=>list.forEach(([l,k,ic],i)=>{const o=Object.assign({label:l,icon:ic||'',shape:'rc',c:SH},bindOf(k));
     if(horiz)put(o,left?M+i*(sw+gap):W-M-sw-i*(sw+gap),Math.max(8,topY-14-sh),sw);
     else put(o,left?M:W-M-sw,Math.max(8,topY-14-sh-(list.length-1-i)*(sh+gap)),sw)});
@@ -96,7 +101,8 @@ const ctrlPreset=()=>PRESETS.find(x=>x.name===S.ctrl)||PRESETS.find(x=>x.name===
 const resetLayout=()=>buildPreset(ctrlPreset());
 function applyPreset(p){
   /* a different controller deletes every mode: one mode is left, holding the new controller's buttons */
-  const pv=snap();releaseAll();S.ctrl=p.name;
+  const pv=snap();releaseAll();S.ctrl=p.name;S.rnd=null;S.act=null;   /* a controller picked on purpose cancels the one given after every layout was deleted, and the layout in use */
+  {const x=(S.lo||layoutKey())==="p"?"l":"p";S.altC=S.altC||{};if(S.alt&&S.alt[x])S.altC[x]=""}   /* a layout kept aside for the other orientation that does not know its controller is rebuilt from the new one */
   const first=S.layers[0]||{};
   S.layers=[normLayer({id:first.id,btns:buildPreset(p)},0)];S.li=0;S.btns=S.layers[0].btns;S.caps=1;S.border=1;delete S.sw;
   histCommitWhole(pv);setCur(null);selectOnly(null);fill();render();swUI();if(lyrOpen())drawLayers();lsUI();save();toast(p.name+" controller applied");

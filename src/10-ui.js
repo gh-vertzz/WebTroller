@@ -1,19 +1,32 @@
-/* ---------- layout switching: portrait and landscape each keep their own layout ---------- */
+/* ---------- layout switching: the layout in use follows you when the device is rotated ---------- */
 const layoutKey=()=>{const[w,h]=viewSize();return w>h?"l":"p"};
-let LW=null;
+let LW=null,ROT_Q=false,PEND={},PSAVE=null,LSZ=null,BOTHN=null,NAMEHINT=null;   /* the editor was rotated: the other orientation's layout came on screen, so Done must not ask to save it when nothing was changed since */
 function syncLayout(){
-  S.alt=S.alt||{};const k=layoutKey(),vw=viewSize()[0],same=LW!==null&&Math.abs(vw-LW)<2;LW=vw;
+  S.alt=S.alt||{};const pz=LSZ,vz=viewSize(),k=layoutKey(),vw=vz[0],same=LW!==null&&Math.abs(vw-LW)<2;LW=vw;LSZ=[vz[0],vz[1]];
   if(!S.lo){S.lo=k;return}
   /* the on-screen keyboard only changes the height; a real rotation also changes the width */
   if(same||S.lo===k)return;
+  if(mode==="edit"&&(!sameEdit(snap(),EDIT0)||SAVED_GONE)){   /* changes made here are kept, so Done can still ask about them from the other orientation */
+    const nm=curName(),gone=SAVED_GONE,ed=layoutObj(),base=snapLayout(gone&&EDIT_START?EDIT_START:EDIT0);   /* read the old state from its snapshot: nothing on screen is touched */
+    PEND[S.lo]={ed,base,s0:EDIT0,name:nm,ex:!!lnk(),gone};
+  }
   /* the preset is the same in portrait and landscape: a stored layout from a different preset is rebuilt from the current one */
   S.altC=S.altC||{};const cn=ctrlPreset().name;
-  releaseAll();const keepLi=S.li;S.alt[S.lo]=layoutObj();S.altC[S.lo]=cn;S.lo=k;
+  /* the saved layout in use here follows you to the other orientation: remember it before S.lo changes */
+  const fdn=curName(),fdk=curK(),fsrc=lnk(),fdirty=mode==="edit"&&(!sameEdit(snap(),EDIT0)||SAVED_GONE);
+  releaseAll();const keepLi=S.li;histStash(S.lo);S.alt[S.lo]=layoutObj();const old=S.alt[S.lo],mq=modeQueue(old,S.lo);S.altC[S.lo]=cn;S.lo=k;
   const stale=S.alt[k]&&S.altC[k]!==undefined&&S.altC[k]!==cn;
+  const hadAlt0=!!(S.alt[k]&&!stale);let fl=false;const fol=followPlan(S.act,k,hadAlt0,!!PEND[k]);
   setLayout(S.alt[k]&&!stale?S.alt[k]:resetLayout());fitBtns();delete S.alt[k];delete S.altC[k];if(stale)setCur(null);
-  if(keepLi>0&&keepLi<S.layers.length){S.li=keepLi;S.btns=S.layers[keepLi].btns}   /* rotating while on layer 3 lands on layer 3 of the other orientation, if it has one */   /* a different controller was chosen in the other orientation */
-  selectOnly(null);histReset();
-  if(mode==="edit"){EDIT0=MODE0=EDIT_START=snap();toast((k==="l"?"Landscape":"Portrait")+" layout loaded")}
+  /* the layout you were using is a saved layout: this orientation opens the same one (its own saved copy of that name, or the layout fitted to this screen) */
+  if(fol){try{if(applyLayout(fol.x,fol.n,fol.xo,true)){fl=true;fitBtns();if(fol.xo&&!fdirty&&S.ops)S.ops[k]=[]}}catch(e){}}   /* a layout loaded from the other orientation already holds the mode changes that were saved with it */
+  const hadAlt=hadAlt0&&!fl;
+  if(keepLi>=0&&keepLi<S.layers.length){S.li=keepLi;S.btns=S.layers[keepLi].btns}   /* rotating while on layer 3 lands on layer 3 of the other orientation, if it has one */   /* a different controller was chosen in the other orientation */
+  selectOnly(null);histSwap(k,hadAlt);
+  try{rotAuto()}catch(e){}
+  if(mode==="edit"){EDIT0=MODE0=EDIT_START=snap();ROT_Q=true;SAVED_GONE=false;{const pe=PEND[k];if(pe){EDIT0=MODE0=EDIT_START=pe.s0;SAVED_GONE=!!pe.gone;delete PEND[k]}}0}
+  try{applyModes(mq,old,hadAlt||fl)}catch(e){}
+  if(keepLi>=0&&keepLi<S.layers.length&&S.li!==keepLi){histSave();S.li=keepLi;S.btns=S.layers[keepLi].btns;histLoad();afterLayerChange()}   /* the mode you were on stays the open mode after rotating, also when modes were just added or removed here */   /* after the baseline above, so Done sees the added modes as changes */
   updUR();save();
 }
 function refreshNow(){applyScale();syncLayout();fill();render();swUI();placeAll();if($("laym").classList.contains("open"))layUpdate()}
@@ -37,8 +50,9 @@ $("etog").onclick=()=>{try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}ebS
 
 /* ---------- modes ---------- */
 function setMode(m){
-  unlockAll();if(m==="play"&&mode==="edit")histReset();   /* leaving the layout editor (Done, Save or Discard) clears the Undo and Redo of every mode */
-  mode=m;if(m==="edit"){ebSet(false,false);HIDDEN=false;multi=false;$("panel").classList.remove("min");}
+  unlockAll();if(m==="play"&&mode==="edit"){histReset();delete S.draft;saveNow()}   /* the edit is finished: written at once, so a reload right after Done never goes back */   /* leaving the layout editor (Done, Save or Discard) clears the Undo and Redo of every mode */
+  mode=m;if(m==="edit"){try{if(document.fullscreenElement){const fx=document.exitFullscreen();if(fx&&fx.catch)fx.catch(()=>{})}}catch(e){}   /* opening the layout editor turns fullscreen off */
+ ebSet(false,false);HIDDEN=false;multi=false;$("panel").classList.remove("min");}
   if(typeof tutClose==="function")tutClose();
   ["laym","lyrm","presm","ipicker","picker","confm","donm","infom"].forEach(i=>$(i).classList.remove("open"));
   SAVE_FIRST=false;$("shell").dataset.mode=m;capturing=false;

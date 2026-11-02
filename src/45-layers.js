@@ -141,16 +141,49 @@ const newModes=()=>modeChange()!=="";           /* a mode was added or deleted a
 function addLayer(copy,asked){
   if(S.layers.length>=LMAX)return toast("You can have up to "+LMAX+" modes");
   syncLayer();const pv=snap(),n=S.layers.length+1;
-  S.layers.push(normLayer({id:Date.now(),n:"",btns:copy?JSON.parse(JSON.stringify(S.btns)):[]},n-1));
+  S.layers.push(normLayer({id:Date.now(),n:"",btns:copy?JSON.parse(JSON.stringify(S.btns)):[]},n-1));   /* a copied mode is a copy of the mode that is open now, even when it is empty; a blank mode is empty */
+  recOp({t:"add",f:copy?S.li:-1});   /* the other orientation gets this mode when you rotate */
   gotoLayer(S.layers.length-1);
   toast("Mode added. Save the layout to keep it");          /* a new mode is not saved by itself: Done asks whether to save it */
+}
+/* what you do to the modes in one orientation (add, delete, move, icon, name, "In switcher") is done to the modes of the other orientation too when you rotate, in the same order.
+   Each orientation only ever copies its own layout: a copied mode copies that orientation's own mode with the same number (a blank mode stays blank). */
+function recOp(o){const k=(S.lo||layoutKey())==="p"?"l":"p";S.ops=S.ops||{p:[],l:[]};(S.ops[k]=S.ops[k]||[]).push(o)}
+function modeQueue(){return null}
+function applyModes(mq,old,hadAlt){
+  const k=S.lo||layoutKey(),ops=(S.ops&&S.ops[k])||[];if(S.ops)S.ops[k]=[];
+  syncLayer();const before=curId();let ch=0;
+  if(!hadAlt&&old&&Array.isArray(old.layers)&&old.layers.length>1){   /* this orientation was rebuilt: it gets the same modes (names, icons, order, switcher), each starting as a copy of its own first mode (blank where the other one is blank) */
+    const own=S.layers[0].btns,keep=S.li;
+    S.layers=old.layers.slice(0,LMAX).map((l,i)=>{const n=normLayer({id:i===0?S.layers[0].id:Date.now()+i*7,n:l.n,i:l.i,btns:i===0?own:(l.btns&&l.btns.length?JSON.parse(JSON.stringify(own)):[])},i);if(l.hide)n.hide=1;return n});
+    S.li=Math.min(keep,S.layers.length-1);ch=1;
+  }else ops.forEach(o=>{
+    if(o.t==="add"){
+      if(S.layers.length>=LMAX)return;
+      const src=o.f>=0?(S.layers[o.f]||S.layers[S.li]).btns:[];
+      S.layers.push(normLayer({id:Date.now()+S.layers.length*7+ch,n:"",btns:JSON.parse(JSON.stringify(src))},S.layers.length));ch++}
+    else if(o.t==="del"){
+      if(S.layers.length<2||!S.layers[o.at])return;
+      delete HSTORE[S.layers[o.at].id];S.layers.splice(o.at,1);
+      if(o.at<S.li)S.li--;else if(o.at===S.li)S.li=Math.min(o.at,S.layers.length-1);ch++}
+    else if(o.t==="move"){
+      const i=o.at,j=i+o.d;if(!S.layers[i]||!S.layers[j])return;
+      const t=S.layers[i];S.layers[i]=S.layers[j];S.layers[j]=t;
+      if(S.li===i)S.li=j;else if(S.li===j)S.li=i;ch++}
+    else if(o.t==="icon"){const l=S.layers[o.at];if(l){l.i=o.i;ch++}}
+    else if(o.t==="name"){const l=S.layers[o.at];if(l){l.n=o.n;ch++}}
+    else if(o.t==="hide"){const l=S.layers[o.at];if(l){if(o.h){if(S.layers.filter(x=>!x.hide).length>=2)l.hide=1}else delete l.hide;ch++}}
+  });
+  if(!ch)return;
+  S.btns=S.layers[S.li].btns;if(curId()!==before)histLoad();
+  fitBtns();afterLayerChange();
 }
 function afterLayerChange(){ensureVisible();selectOnly(null);fill();render();swUI();if(lyrOpen())drawLayers();save();updUR()}
 function delLayer(i){
   if(S.layers.length<2)return toast("A layout needs at least one mode");
   const l=S.layers[i],c=(i===S.li?S.btns:l.btns).length;
   askConfirm("Delete mode?","This mode and its "+c+" button"+(c===1?"":"s")+" will be removed from this layout. Nothing is saved until you tap Done and Save, and Discard there brings the mode back.","Delete",()=>{
-    syncLayer();const wasOn=i===S.li;delete HSTORE[l.id];   /* a deleted mode takes its Undo and Redo with it */
+    syncLayer();const wasOn=i===S.li;recOp({t:"del",at:i});delete HSTORE[l.id];   /* a deleted mode takes its Undo and Redo with it */
     S.layers.splice(i,1);
     if(i<S.li)S.li--;else if(i===S.li)S.li=Math.min(i,S.layers.length-1);
     S.btns=S.layers[S.li].btns;if(wasOn)histLoad();   /* another mode is on screen now: it shows its own Undo and Redo; deleting a different mode leaves them alone */
@@ -161,10 +194,11 @@ function moveLayer(i,d){
   const j=i+d;if(j<0||j>=S.layers.length)return;
   syncLayer();const pv=snap(),t=S.layers[i];S.layers[i]=S.layers[j];S.layers[j]=t;
   if(S.li===i)S.li=j;else if(S.li===j)S.li=i;
+  recOp({t:"move",at:i,d});
   afterLayerChange();
 }
 function hideLayer(i,hide){const pv=snap(),l=S.layers[i];
-  if(hide&&S.layers.filter(x=>!x.hide).length<2){drawLayers();return toast("At least one mode must stay in the switcher")}if(hide)l.hide=1;else delete l.hide;swUI();if(lyrOpen())drawLayers();save()}   /* the list is redrawn so the last switch locks, and unlocks again as soon as two are on */
+  if(hide&&S.layers.filter(x=>!x.hide).length<2){drawLayers();return toast("At least one mode must stay in the switcher")}if(hide)l.hide=1;else delete l.hide;recOp({t:"hide",at:i,h:hide?1:0});swUI();if(lyrOpen())drawLayers();save()}   /* the list is redrawn so the last switch locks, and unlocks again as soon as two are on */
 function openLayerIcon(i){ipLayer=i;openI()}
 /* the menu of one layer in the switcher (Edit layout): change its icon or delete it */
 function layerMenu(i){
@@ -187,7 +221,7 @@ function drawLayers(){
     const nm=document.createElement("input");nm.type="text";nm.value=l.n;nm.maxLength=24;nm.placeholder="Mode Name";nm.setAttribute("aria-label","Mode Name");
     let pv0=null;nm.onfocus=()=>{pv0=snap()};
     nm.oninput=()=>{l.n=nm.value;swUI()};
-    nm.onchange=()=>{if(!l.n.trim()){l.n="";nm.value=""}pv0=null;fill();swUI();save()};   /* a rename is not saved by itself: Done asks (Save or Discard) */
+    nm.onchange=()=>{if(!l.n.trim()){l.n="";nm.value=""}recOp({t:"name",at:i,n:l.n});pv0=null;fill();swUI();save()};   /* a rename is not saved by itself: Done asks (Save or Discard) */
     const go=document.createElement(i===S.li?"span":"button");go.className=i===S.li?"lyon":"lygo";
     go.textContent=i===S.li?"Editing":"Edit";if(i!==S.li)go.onclick=()=>tryLayer(i);
     top.append(ch,nm,go);
