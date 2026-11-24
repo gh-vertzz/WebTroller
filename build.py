@@ -26,7 +26,7 @@ const HTML=@@HTML@@;
 chrome.storage.local.get(["wt","emu3"],r=>start(r.wt||r.emu3||null));
 function start(saved){
 const host=document.createElement("div");host.id="webtroller-host";
-host.style.cssText="all:initial;position:fixed;inset:0;z-index:2147483647;pointer-events:none";
+host.style.cssText="all:initial;position:fixed;inset:0;z-index:2147483647;pointer-events:none;color-scheme:dark;forced-color-adjust:none";
 const root=host.attachShadow({mode:"open"});
 root.innerHTML="<style>"+CSS+'</style><div id="shell" data-mode="play" data-grid="1">'+HTML+"</div>";
 document.documentElement.appendChild(host);

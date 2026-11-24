@@ -34,6 +34,11 @@ let refRaf=0;function refresh(){if(refRaf)return;refRaf=requestAnimationFrame(()
 addEventListener("resize",refresh);
 if(window.visualViewport)visualViewport.addEventListener("resize",refresh);
 addEventListener("orientationchange",()=>setTimeout(refresh,150));
+/* coming back from another app or overlay (Gemini, the app switcher, a call) or closing the keyboard: measure the page again so the buttons never stay at a stale height */
+addEventListener("focus",()=>{setTimeout(refresh,100);setTimeout(refresh,600)});
+addEventListener("pageshow",()=>setTimeout(refresh,100));
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){setTimeout(refresh,100);setTimeout(refresh,600)}});
+document.addEventListener("focusout",()=>setTimeout(refresh,350));
 /* the page can still change its width after it first appears (scrollbar, toolbar, late layout): centre the buttons again once it has settled */
 addEventListener("load",()=>setTimeout(refresh,50));setTimeout(refresh,800);
 
